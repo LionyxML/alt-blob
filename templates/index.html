@@ -1,0 +1,20 @@
+{% extends "layout.html" %} {% block content %}
+
+<h2>Welcome</h2>
+
+<p>
+  <strong>{{ title }}</strong> is the alternative blob sharing spot: paste some
+  text, drop an image or a PDF, get a short anonymous link back. No account, no
+  database, no JavaScript, no tracking.
+</p>
+
+<p>
+  Uploads are administrator only. Anyone holding a link can read it, and links
+  are not listed anywhere public.
+</p>
+
+<pre><code>curl {{ base-url }}b/aaAsJk2</code></pre>
+
+<p><a href="/about">[about]</a> - what it accepts, and how to drive it from a shell</p>
+
+{% endblock %}

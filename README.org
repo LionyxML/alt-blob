@@ -1,0 +1,226 @@
+* AltBlob
+
+A self-hosted, anonymous paste and blob host written in Common Lisp
+(SBCL). Upload text, an image or a PDF, get back a link like
+=https://alt.example.org/b/aaAsJk2=. Fetching that link gives you the
+bytes and nothing else: no viewer, no rendering, no JavaScript.
+
+Only the administrator can upload. Anyone holding a link can read it,
+and links are not listed anywhere public.
+
+There is no database. Each blob is a directory on disk holding the raw
+bytes and a small metadata file you can read with =cat=.
+
+** Features
+
+- Raw dumps: =GET /b/<id>= answers with the stored bytes and nothing
+  else. Text and images are shown by the browser, never rendered as
+  markup; =?dl=1= forces a download instead.
+- Random, non-enumerable ids (7 base62 characters from =/dev/urandom=).
+- Uploads whitelisted by magic bytes, never by extension or by the
+  =Content-Type= the client sent. Executables, archives and SVG are
+  refused by construction.
+- Zero JavaScript, anywhere. curl, eww, w3m and lynx get exactly what a
+  graphical browser gets.
+- Admin routes behind HTTP Basic Auth, fail-closed: with no
+  =ADMIN_PASSWORD= set, nothing can be uploaded at all.
+- Cross-site writes refused (=Sec-Fetch-Site= / =Origin= checked), since
+  Basic Auth rides along on every browser request.
+- Sortable listing (id, name, type, size, age) with batch delete behind
+  a confirmation page.
+- Per-IP rate limiting on public reads.
+- No database: the store is a directory tree, rsync-able and readable.
+- One-command HTTPS deployment behind Caddy (automatic Let's Encrypt
+  certs).
+
+** Accepted uploads
+
+| Type       | Stored as | Served as                    |
+|------------+-----------+------------------------------|
+| plain text | =.txt=    | =text/plain; charset=utf-8=  |
+| PNG        | =.png=    | =image/png=                  |
+| JPEG       | =.jpg=    | =image/jpeg=                 |
+| GIF        | =.gif=    | =image/gif=                  |
+| WebP       | =.webp=   | =image/webp=                 |
+| PDF        | =.pdf=    | =application/pdf=            |
+
+Everything is served with =Content-Disposition: inline=, so the browser shows
+it instead of downloading it. Add =?dl=1= to any blob URL to force the
+download.
+
+Text must be valid UTF-8 and free of control characters other than tab,
+newline and carriage return. Everything else is refused with a 400.
+Default size limit is 5 MiB (=--max-blob=).
+
+The stored filename is sanitized and forced to the extension the sniffed
+type deserves: an =.exe= that turns out to be text is stored as =.txt=.
+An upload with no usable name is named after its own id.
+
+** Tech Stack
+
+- SBCL (Steel Bank Common Lisp)
+  - Hunchentoot: web server
+  - Easy-Routes: routing
+  - Djula: HTML templates
+  - quri: URL parsing
+- The filesystem, for storage.
+
+** Requirements
+
+To run from source or build the binary:
+
+- SBCL
+- Quicklisp (for fetching the Lisp dependencies)
+
+To run the containerized HTTPS stack instead, you only need Podman (or
+Docker) with Compose.
+
+** Quick start
+
+*** With containers (nothing but Podman or Docker on the host)
+
+#+begin_src sh
+  cp .env.example .env      # then edit DOMAIN / ADMIN_PASSWORD / ACME_EMAIL
+  podman compose up -d      # or: docker compose up -d
+#+end_src
+
+Local run on unprivileged ports, with Caddy's internal CA:
+
+#+begin_src sh
+  podman compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+  # then browse https://localhost:8443/
+#+end_src
+
+*** From source (plain HTTP, port 3900)
+
+#+begin_src sh
+  ADMIN_PASSWORD=secret make run
+#+end_src
+
+** Usage from the shell
+
+Uploading (admin only):
+
+#+begin_src sh
+  # any file, no multipart needed
+  curl -u admin:PASSWORD --data-binary @notes.txt https://alt.example.org/new
+
+  # from a pipe
+  git diff | curl -u admin:PASSWORD --data-binary @- https://alt.example.org/new
+
+  # keep a filename
+  curl -u admin:PASSWORD --data-binary @shot.png 'https://alt.example.org/new?name=shot.png'
+
+  # multipart, the same path the browser form takes
+  curl -u admin:PASSWORD -F f=@shot.png https://alt.example.org/new
+#+end_src
+
+The answer is the URL as plain text, with a 201. A refused upload
+answers 400 and a one-line reason.
+
+Reading (open to anyone with the link):
+
+#+begin_src sh
+  curl https://alt.example.org/b/aaAsJk2
+  curl -O -J https://alt.example.org/b/aaAsJk2   # keep the stored filename
+  curl 'https://alt.example.org/b/aaAsJk2?dl=1'  # ask for it as a download
+#+end_src
+
+Listing and deleting (admin only):
+
+#+begin_src sh
+  # tab separated: id, name, type, size, created
+  curl -u admin:PASSWORD 'https://alt.example.org/list?raw=1'
+
+  # delete: without confirm=1 you get a 409 telling you what would go
+  curl -u admin:PASSWORD -d id=aaAsJk2 -d id=bbCdEf3 -d confirm=1 \
+       https://alt.example.org/list/delete
+#+end_src
+
+Browsers get HTML for the same routes; the =raw= parameter forces the
+plain-text answer.
+
+** Routes
+
+| Route             | Auth   | What it does                                |
+|-------------------+--------+---------------------------------------------|
+| =GET /=             | public | short landing page                          |
+| =GET /about=        | public | usage, including the curl recipes           |
+| =GET /b/:id=          | public | the stored bytes (=HEAD= works too)           |
+| =GET /new=          | admin  | upload form: a textarea and a file input    |
+| =POST /new=         | admin  | store an upload, answer with its URL        |
+| =GET /list=         | admin  | sortable listing; =?raw=1= for TSV            |
+| =POST /list/delete= | admin  | confirmation page, or delete with =confirm=1= |
+
+** Storage layout
+
+#+begin_src text
+  data/
+    aaAsJk2/
+      blob        raw bytes, exactly as uploaded
+      meta.lisp   (:id "aaAsJk2" :name "foo.pdf" :type :pdf :size 12345 :created 3996310316)
+#+end_src
+
+Disk is the source of truth. At startup the directory is scanned into an
+in-memory index so the listing can sort and paginate without touching
+the filesystem; a directory with no readable =meta.lisp= is a leftover
+from an interrupted upload and is removed during that scan.
+
+Deleting a blob removes its directory. Backups are =rsync=; migration is
+=mv=.
+
+** Configuration
+
+Everything has a flag and most things have an environment variable.
+
+*** Options reference
+
+| Option              | Env               | Default                    |
+|---------------------+-------------------+----------------------------|
+| =-p=, =--port=          | =PORT=              | 3900                       |
+| =-b=, =--base=          | =BASE_URL=          | http://localhost:3900/     |
+| =-d=, =--data-dir=      | =DATA_DIR=          | ./data                     |
+| =--max-blob=          | =MAX_BLOB=          | 5242880 (accepts =5M=)       |
+| =--no-rate-limit=     | =RATE_LIMIT=        | rate limiting on           |
+| =--rate-limit-max=    | =RATE_LIMIT_MAX=    | 60                         |
+| =--rate-limit-window= | =RATE_LIMIT_WINDOW= | 60                         |
+| =--trust-proxy=       | =TRUST_PROXY=       | off                        |
+| =--list-page-size=    | =LIST_PAGE_SIZE=    | 50                         |
+| (env only)          | =ADMIN_USER=        | admin                      |
+| (env only)          | =ADMIN_PASSWORD=    | unset, admin routes closed |
+| (env only)          | =MAX_THREADS=       | 100                        |
+| (env only)          | =ACCEPT_BACKLOG=    | 200                        |
+
+=--trust-proxy= makes the app read the client IP from =X-Forwarded-For=.
+Enable it only behind a proxy that overwrites the header (the bundled
+Caddyfile does); otherwise clients pick their own rate-limit bucket.
+
+** Make targets
+
+| Target     | What it does                      |
+|------------+-----------------------------------|
+| =make build= | build the standalone executable   |
+| =make run=   | run from source (needs Quicklisp) |
+| =make check= | compile without running           |
+| =make repl=  | start SBCL with the system loaded |
+| =make clean= | remove build artifacts            |
+
+** Security notes
+
+- Every blob response carries =X-Content-Type-Options: nosniff=,
+  =Content-Security-Policy: default-src 'none'; sandbox= and
+  =X-Robots-Tag: noindex=. =robots.txt= disallows everything.
+- Text is always served as =text/plain=, so a paste full of HTML is
+  shown, never rendered. Images are not active content, and the one type
+  that can carry script -- PDF -- is confined by the sandbox in the CSP
+  above: opaque origin, no script, no same-origin access.
+- Ids are validated against =[0-9A-Za-z]{1,16}= before any path is built
+  from them.
+- Basic Auth is unencrypted: serve it behind HTTPS. The bundled Caddy
+  setup does that for you.
+- Without =ADMIN_PASSWORD=, =/new= and =/list= answer 401 and the store
+  is effectively read-only.
+
+** License
+
+MIT. See [[file:LICENSE][LICENSE]].

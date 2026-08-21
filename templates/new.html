@@ -1,0 +1,34 @@
+{% extends "layout.html" %} {% block content %}
+
+<h2>New</h2>
+
+{% if error %}
+<p><strong>{{ error }}</strong></p>
+{% endif %}
+
+{% if created %}
+<p>Stored {{ created-name }} ({{ created-size }}):</p>
+<pre><code>{{ created }}</code></pre>
+<p><a href="/b/{{ created-id }}">[open]</a> <a href="/list">[list]</a></p>
+{% endif %}
+
+<form action="/new" method="post" enctype="multipart/form-data">
+  <p>
+    <label for="text">Paste text</label><br />
+    <textarea id="text" name="text" rows="16" cols="80"></textarea>
+  </p>
+  <p>
+    <label for="f">or upload a file</label><br />
+    <input id="f" type="file" name="f" />
+  </p>
+  <p><button type="submit">[upload]</button></p>
+</form>
+
+<p>
+  <small>
+    Accepted: {{ types }}, up to {{ max-size }}. A file wins over the textarea
+    when both are filled.
+  </small>
+</p>
+
+{% endblock %}

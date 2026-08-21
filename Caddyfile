@@ -1,0 +1,29 @@
+# Automatic HTTPS: Caddy obtains + renews a Let's Encrypt cert for {$DOMAIN},
+# redirects HTTP->HTTPS, and reverse-proxies to the app container.
+# With DOMAIN=localhost, Caddy serves a local internal-CA cert instead.
+
+{
+	# ACME account email (optional but recommended for expiry notices).
+	email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+	encode gzip zstd
+
+	# Stop oversized uploads at the edge. Keep this above the app's MAX_BLOB
+	# (default 5M) so the app is the one that reports the limit.
+	request_body {
+		max_size 6MB
+	}
+
+	# The app trusts both headers (TRUST_PROXY=1), so overwrite whatever the
+	# client sent. Caddy appends to X-Forwarded-For and the app reads the first
+	# entry, so without this anyone can forge their rate-limit bucket.
+	reverse_proxy app:3900 {
+		header_up X-Forwarded-For {remote_host}
+	}
+}
+
+# Behind Cloudflare: swap the header_up line for
+# `header_up X-Forwarded-For {http.request.header.CF-Connecting-IP}`.
+# Only safe if the origin refuses non-Cloudflare traffic.

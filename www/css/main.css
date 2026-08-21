@@ -1,0 +1,80 @@
+html {
+  scrollbar-gutter: stable;
+}
+
+body {
+  margin: auto;
+  width: 80vw;
+  background-color: #181a1b;
+  color: #e8e6e3;
+  font-family: ui-monospace, Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+main {
+  margin-bottom: 1rem;
+}
+
+input,
+button,
+textarea {
+  font: inherit;
+}
+
+textarea {
+  width: 100%;
+  max-width: 100%;
+  background-color: #23272a;
+  color: #e8e6e3;
+  border: 1px solid #3a3d3f;
+  padding: 0.4rem;
+}
+
+button {
+  padding: 0;
+  background: none;
+  border: none;
+  color: #3491ff;
+  cursor: pointer;
+}
+
+table.blobs {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+table.blobs th,
+table.blobs td {
+  border-bottom: 1px solid #3a3d3f;
+  padding: 0.4rem 0.6rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+table.blobs .num {
+  text-align: center;
+}
+
+table.blobs form {
+  display: inline;
+}
+
+table.blobs .current {
+  color: #9a9a9a;
+}
+
+pre {
+  background-color: #23272a;
+  border: 1px solid #3a3d3f;
+  border-radius: 4px;
+  padding: 0.6rem 0.8rem;
+  overflow-x: auto;
+}
+
+a,
+a:link,
+a:visited,
+a:hover,
+a:active {
+  color: #3491ff;
+  text-decoration: none;
+}

@@ -1,0 +1,54 @@
+# AltBlob behind Caddy (automatic HTTPS).
+#
+#   cp .env.example .env      # then edit DOMAIN / ADMIN_PASSWORD / ACME_EMAIL
+#   podman compose up -d      # (or: docker compose up -d)
+#
+# Caddy fetches and renews a Let's Encrypt certificate for $DOMAIN automatically.
+# With DOMAIN=localhost it serves its own internal-CA cert for local testing.
+
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    expose:
+      - "3900"            # internal only; Caddy is the sole public entry point
+    environment:
+      PORT: "3900"
+      DATA_DIR: /data
+      BASE_URL: "https://${DOMAIN}/"
+      ADMIN_USER: "${ADMIN_USER:-admin}"
+      ADMIN_PASSWORD: "${ADMIN_PASSWORD:?set ADMIN_PASSWORD in .env}"
+      # Behind Caddy every request arrives from the proxy, so honor X-Forwarded-For
+      # to keep the per-IP rate limit working. Safe only because Caddy sets it.
+      TRUST_PROXY: "1"
+      # Upload cap and read rate limit (optional; defaults are 5M / 60 per 60s).
+      MAX_BLOB: "${MAX_BLOB:-5M}"
+      RATE_LIMIT: "${RATE_LIMIT:-on}"
+      RATE_LIMIT_MAX: "${RATE_LIMIT_MAX:-60}"
+      RATE_LIMIT_WINDOW: "${RATE_LIMIT_WINDOW:-60}"
+      MAX_THREADS: "${MAX_THREADS:-100}"
+      ACCEPT_BACKLOG: "${ACCEPT_BACKLOG:-200}"
+      LIST_PAGE_SIZE: "${LIST_PAGE_SIZE:-50}"
+    volumes:
+      - ./data:/data
+
+  caddy:
+    image: docker.io/library/caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"     # HTTP/3
+    environment:
+      DOMAIN: "${DOMAIN}"
+      ACME_EMAIL: "${ACME_EMAIL:-}"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data       # certificates + ACME account (persist across restarts)
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

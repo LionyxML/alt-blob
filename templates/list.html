@@ -1,0 +1,54 @@
+{% extends "layout.html" %} {% block content %}
+
+<h2>List <small>({{ total }} blob(s), {{ disk }})</small></h2>
+
+<form action="/list/delete" method="post">
+  <table class="blobs">
+    <thead>
+      <tr>
+        <th scope="col" class="num">[x]</th>
+        {% for c in columns %}
+        <th scope="col"{% if c.center %} class="num"{% endif %}>
+          <a href="{{ c.url }}">{{ c.label }}</a>
+          {% if c.active %}<span class="current">{{ c.arrow }}</span>{% endif %}
+        </th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for b in blobs %}
+      <tr>
+        <td class="num">
+          <input type="checkbox" name="id" value="{{ b.id }}" />
+        </td>
+        <td class="num"><a href="/b/{{ b.id }}">{{ b.id }}</a></td>
+        <td>{{ b.name }}</td>
+        <td class="num">{{ b.type }}</td>
+        <td class="num">{{ b.human_size }}</td>
+        <td class="num" title="{{ b.created }}">{{ b.age }}</td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="6">Nothing stored yet. <a href="/new">[upload something]</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if total %}
+  <p><button type="submit">[delete checked]</button></p>
+  {% endif %}
+</form>
+
+<p class="pagination">
+  <small>
+    {% if total %}Showing {{ from }}&ndash;{{ to }} of {{ total }}{% else %}Empty{% endif %}
+    {% if pages > 1 %}
+    &middot; page {{ page }} of {{ pages }} &middot;
+    {% if prev-url %}<a href="{{ prev-url }}">[prev]</a>{% else %}<span class="current">[prev]</span>{% endif %}
+    {% if next-url %}<a href="{{ next-url }}">[next]</a>{% else %}<span class="current">[next]</span>{% endif %}
+    {% endif %}
+  </small>
+</p>
+
+{% endblock %}

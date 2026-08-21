@@ -1,0 +1,38 @@
+{% extends "layout.html" %} {% block content %}
+
+<h2>Delete {{ count }} blob(s)?</h2>
+
+<p>This cannot be undone. The bytes leave the disk.</p>
+
+<table class="blobs">
+  <thead>
+    <tr>
+      <th scope="col" class="num">id</th>
+      <th scope="col">name</th>
+      <th scope="col" class="num">type</th>
+      <th scope="col" class="num">size</th>
+      <th scope="col" class="num">age</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for b in blobs %}
+    <tr>
+      <td class="num">{{ b.id }}</td>
+      <td>{{ b.name }}</td>
+      <td class="num">{{ b.type }}</td>
+      <td class="num">{{ b.human_size }}</td>
+      <td class="num" title="{{ b.created }}">{{ b.age }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<form action="/list/delete" method="post">
+  {% for b in blobs %}
+  <input type="hidden" name="id" value="{{ b.id }}" />
+  {% endfor %}
+  <input type="hidden" name="confirm" value="1" />
+  <p><button type="submit">[yes, delete]</button> <a href="/list">[cancel]</a></p>
+</form>
+
+{% endblock %}
