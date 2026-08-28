@@ -20,14 +20,14 @@ bytes and a small metadata file you can read with =cat=.
 - Uploads whitelisted by magic bytes, never by extension or by the
   =Content-Type= the client sent. Executables, archives and SVG are
   refused by construction.
-- Zero JavaScript, anywhere. curl, eww, w3m and lynx get exactly what a
-  graphical browser gets.
+- Zero JavaScript, anywhere. curl, eww, w3m and lynx get exactly what
+  a graphical browser gets.
 - Admin routes behind HTTP Basic Auth, fail-closed: with no
   =ADMIN_PASSWORD= set, nothing can be uploaded at all.
 - Cross-site writes refused (=Sec-Fetch-Site= / =Origin= checked), since
   Basic Auth rides along on every browser request.
-- Sortable listing (id, name, type, size, age) with batch delete behind
-  a confirmation page.
+- Sortable listing (id, name, type, size, age) with batch delete
+  behind a confirmation page.
 - Per-IP rate limiting on public reads.
 - No database: the store is a directory tree, rsync-able and readable.
 - One-command HTTPS deployment behind Caddy (automatic Let's Encrypt
@@ -35,26 +35,51 @@ bytes and a small metadata file you can read with =cat=.
 
 ** Accepted uploads
 
-| Type       | Stored as | Served as                    |
-|------------+-----------+------------------------------|
-| plain text | =.txt=    | =text/plain; charset=utf-8=  |
-| PNG        | =.png=    | =image/png=                  |
-| JPEG       | =.jpg=    | =image/jpeg=                 |
-| GIF        | =.gif=    | =image/gif=                  |
-| WebP       | =.webp=   | =image/webp=                 |
-| PDF        | =.pdf=    | =application/pdf=            |
+| Type       | Stored as | Served as                   | Disposition |
+|------------+-----------+-----------------------------+-------------|
+| plain text | =.txt=      | =text/plain; charset=utf-8=   | inline      |
+| PNG        | =.png=      | =image/png=                   | inline      |
+| JPEG       | =.jpg=      | =image/jpeg=                  | inline      |
+| GIF        | =.gif=      | =image/gif=                   | inline      |
+| WebP       | =.webp=     | =image/webp=                  | inline      |
+| PDF        | =.pdf=      | =application/pdf=             | inline      |
+| zip        | =.zip=      | =application/zip=             | attachment  |
+| gzip       | =.gz=       | =application/gzip=            | attachment  |
+| xz         | =.xz=       | =application/x-xz=            | attachment  |
+| bzip2      | =.bz2=      | =application/x-bzip2=         | attachment  |
+| tar        | =.tar=      | =application/x-tar=           | attachment  |
+| rar        | =.rar=      | =application/vnd.rar=         | attachment  |
+| 7z         | =.7z=       | =application/x-7z-compressed= | attachment  |
+| zstd       | =.zst=      | =application/zstd=            | attachment  |
 
-Everything is served with =Content-Disposition: inline=, so the browser shows
-it instead of downloading it. Add =?dl=1= to any blob URL to force the
-download.
+Text, images and PDFs are served inline, so the browser shows them
+instead of downloading them; add =?dl=1= to any blob URL to force the
+download. Archives are always served as an attachment -- there is
+nothing to render, and nothing good comes of a browser trying.
 
-Text must be valid UTF-8 and free of control characters other than tab,
-newline and carriage return. Everything else is refused with a 400.
-Default size limit is 5 MiB (=--max-blob=).
+Text must be valid UTF-8 and free of control characters other than
+tab, newline and carriage return. Everything else is refused with
+a 400.  Default size limit is 5 MiB (=--max-blob=).
 
-The stored filename is sanitized and forced to the extension the sniffed
-type deserves: an =.exe= that turns out to be text is stored as =.txt=.
-An upload with no usable name is named after its own id.
+The stored filename is sanitized and forced to the extension the
+sniffed type deserves: an =.exe= that turns out to be text is stored as
+=.txt=.  An upload with no usable name is named after its own
+id. Because the split happens at the last dot, a =foo.tar.gz= keeps its
+name; a =foo.tgz= is stored as =foo.gz=.
+
+Archives are stored and served as opaque bytes: never opened, never
+listed, never decompressed, so there is no bomb to set off. What magic
+bytes cannot do is look inside the container -- a zip is a zip, and no
+sniffing separates it from the jar, apk or docx built on the same
+format. An =.apk= uploaded is therefore accepted and stored as
+=.zip=. Since writing is admin-only, what lands in the store is the
+admin's own choice.
+
+Two limits worth knowing. Compressed tarballs are recognized by the
+outer compression only: =.tar.gz= and a plain =.gz= are both =gzip=, because
+the magic bytes are identical. And a =.tar= must be POSIX or GNU
+(=ustar=); the pre-POSIX v7 format carries no magic at all and is
+refused rather than guessed at.
 
 ** Tech Stack
 
@@ -161,10 +186,10 @@ plain-text answer.
       meta.lisp   (:id "aaAsJk2" :name "foo.pdf" :type :pdf :size 12345 :created 3996310316)
 #+end_src
 
-Disk is the source of truth. At startup the directory is scanned into an
-in-memory index so the listing can sort and paginate without touching
-the filesystem; a directory with no readable =meta.lisp= is a leftover
-from an interrupted upload and is removed during that scan.
+Disk is the source of truth. At startup the directory is scanned into
+an in-memory index so the listing can sort and paginate without
+touching the filesystem; a directory with no readable =meta.lisp= is a
+leftover from an interrupted upload and is removed during that scan.
 
 Deleting a blob removes its directory. Backups are =rsync=; migration is
 =mv=.
@@ -211,15 +236,15 @@ Caddyfile does); otherwise clients pick their own rate-limit bucket.
   =Content-Security-Policy: default-src 'none'; sandbox= and
   =X-Robots-Tag: noindex=. =robots.txt= disallows everything.
 - Text is always served as =text/plain=, so a paste full of HTML is
-  shown, never rendered. Images are not active content, and the one type
-  that can carry script -- PDF -- is confined by the sandbox in the CSP
-  above: opaque origin, no script, no same-origin access.
+  shown, never rendered. Images are not active content, and the one
+  type that can carry script -- PDF -- is confined by the sandbox in
+  the CSP above: opaque origin, no script, no same-origin access.
 - Ids are validated against =[0-9A-Za-z]{1,16}= before any path is built
   from them.
 - Basic Auth is unencrypted: serve it behind HTTPS. The bundled Caddy
   setup does that for you.
-- Without =ADMIN_PASSWORD=, =/new= and =/list= answer 401 and the store
-  is effectively read-only.
+- Without =ADMIN_PASSWORD=, =/new= and =/list= answer 401 and the store is
+  effectively read-only.
 
 ** License
 
