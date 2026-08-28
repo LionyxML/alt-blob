@@ -6,7 +6,9 @@
   {{ title }} is a small, self-hosted paste and blob host written in Common
   Lisp. It has no database: every blob is a directory on disk holding the raw
   bytes and a small metadata file. Nothing here needs JavaScript, so curl, eww,
-  w3m and lynx get the same thing a graphical browser gets.
+  w3m and lynx get the same thing a graphical browser gets. The one exception is
+  the copy shortcut next to a freshly stored link, which is added by a script
+  when there is one to run and simply absent otherwise.
 </p>
 
 <h3>What it accepts</h3>
@@ -15,7 +17,9 @@
   {{ types }}, up to {{ max-size }} per upload. The type is decided by reading
   the first bytes of the file, never from its extension or from the header the
   client sent: renaming a file changes nothing, and anything that is not on the
-  list is refused. That keeps executables, archives and SVG out.
+  list is refused. That keeps executables and SVG out. Archives are accepted but
+  never opened, listed or decompressed: they are stored and handed back as
+  opaque bytes, always as a download.
 </p>
 
 <p>
@@ -30,7 +34,7 @@
   nothing else: no viewer, no markup, no rewriting. Text is served as
   <code>text/plain</code>, so a paste full of HTML is shown, never rendered.
   Images and PDFs open in the browser; add <code>?dl=1</code> to any blob URL
-  to download it instead.
+  to download it instead. Archives always download.
 </p>
 
 <p>
