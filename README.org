@@ -11,6 +11,17 @@ and links are not listed anywhere public.
 There is no database. Each blob is a directory on disk holding the raw
 bytes and a small metadata file you can read with =cat=.
 
+** Screenshots
+
+[[https://github.com/LionyxML/alt-blob/blob/demos/demo01.png?raw=true]]
+
+[[https://github.com/LionyxML/alt-blob/blob/demos/demo02.png?raw=true]]
+
+[[https://github.com/LionyxML/alt-blob/blob/demos/demo03.png?raw=true]]
+
+[[https://github.com/LionyxML/alt-blob/blob/demos/demo04.png?raw=true]]
+
+
 ** Features
 
 - Raw dumps: =GET /b/<id>= answers with the stored bytes and nothing
