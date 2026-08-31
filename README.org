@@ -155,11 +155,11 @@ Listing and deleting (admin only):
 
 #+begin_src sh
   # tab separated: id, name, type, size, created
-  curl -u admin:PASSWORD 'https://alt.example.org/list?raw=1'
+  curl -u admin:PASSWORD 'https://alt.example.org/admin?raw=1'
 
   # delete: without confirm=1 you get a 409 telling you what would go
   curl -u admin:PASSWORD -d id=aaAsJk2 -d id=bbCdEf3 -d confirm=1 \
-       https://alt.example.org/list/delete
+       https://alt.example.org/admin/delete
 #+end_src
 
 Browsers get HTML for the same routes; the =raw= parameter forces the
@@ -167,15 +167,15 @@ plain-text answer.
 
 ** Routes
 
-| Route             | Auth   | What it does                                |
-|-------------------+--------+---------------------------------------------|
-| =GET /=             | public | short landing page                          |
-| =GET /about=        | public | usage, including the curl recipes           |
-| =GET /b/:id=          | public | the stored bytes (=HEAD= works too)           |
-| =GET /new=          | admin  | upload form: a textarea and a file input    |
-| =POST /new=         | admin  | store an upload, answer with its URL        |
-| =GET /list=         | admin  | sortable listing; =?raw=1= for TSV            |
-| =POST /list/delete= | admin  | confirmation page, or delete with =confirm=1= |
+| Route                | Auth   | What it does                                  |
+|----------------------+--------+-----------------------------------------------|
+| =GET  /=             | public | short landing page                            |
+| =GET  /about=        | public | usage, including the curl recipes             |
+| =GET  /b/:id=        | public | the stored bytes (=HEAD= works too)           |
+| =GET  /new=          | admin  | upload form: a textarea and a file input      |
+| =POST /new=          | admin  | store an upload, answer with its URL          |
+| =GET  /admin=        | admin  | sortable listing; =?raw=1= for TSV            |
+| =POST /admin/delete= | admin  | confirmation page, or delete with =confirm=1= |
 
 ** Storage layout
 
@@ -243,7 +243,7 @@ Caddyfile does); otherwise clients pick their own rate-limit bucket.
   from them.
 - Basic Auth is unencrypted: serve it behind HTTPS. The bundled Caddy
   setup does that for you.
-- Without =ADMIN_PASSWORD=, =/new= and =/list= answer 401 and the store is
+- Without =ADMIN_PASSWORD=, =/new= and =/admin= answer 401 and the store is
   effectively read-only.
 
 ** License

@@ -35,7 +35,7 @@ socket peer. Enable ONLY when running behind a trusted reverse proxy (e.g. Caddy
 that sets the header; otherwise clients could spoof it to dodge the rate limit.")
 
 (defvar *list-page-size* 50
-  "Number of blobs shown per page on /list.")
+  "Number of blobs shown per page on /admin.")
 
 (defvar *rate-limit-table* (make-hash-table :test #'equal)
   "Maps client IP (string) -> list of request timestamps (universal-time).")
@@ -51,7 +51,7 @@ that sets the header; otherwise clients could spoof it to dodge the rate limit."
   (asdf:system-relative-pathname :alt "templates/"))
 
 (defparameter *template-files*
-  '("index.html" "about.html" "new.html" "list.html" "confirm-delete.html"
+  '("index.html" "about.html" "new.html" "admin.html" "confirm-delete.html"
     "not-found.html" "rate-limited.html" "unauthorized.html" "error.html")
   "Templates rendered by routes; precompiled at startup. (layout.html is the
 base and gets pulled in when its children compile.)")
@@ -393,7 +393,7 @@ sorts, which is the whole navigation story: no search box, no filters.")
                                  (other-direction direction)
                                  (if (member key '(:name :type :id)) "asc" "desc"))))
                   (list :|label| label
-                        :|url| (format nil "/list?sort=~A&dir=~A" label next)
+                        :|url| (format nil "/admin?sort=~A&dir=~A" label next)
                         :|active| active
                         ;; Everything but the name is a short field, centered in
                         ;; its cell; the header follows so the column reads straight.
@@ -401,12 +401,12 @@ sorts, which is the whole navigation story: no search box, no filters.")
                         :|arrow| (if (eq direction :asc) "^" "v")))))
 
 (defun page-url (sort direction page)
-  (format nil "/list?sort=~A&dir=~A&page=~D"
+  (format nil "/admin?sort=~A&dir=~A&page=~D"
           (string-downcase (symbol-name sort))
           (string-downcase (symbol-name direction))
           page))
 
-(easy-routes:defroute list-blobs-page ("/list" :decorators (@require-admin)) ()
+(easy-routes:defroute list-blobs-page ("/admin" :decorators (@require-admin)) ()
   (let* ((sort (parse-sort (hunchentoot:parameter "sort")))
          (direction (parse-direction (hunchentoot:parameter "dir") sort))
          (raw (hunchentoot:parameter "raw")))
@@ -437,7 +437,7 @@ sorts, which is the whole navigation story: no search box, no filters.")
                                     :limit size :offset offset)
             (multiple-value-bind (count bytes) (alt.store:store-totals)
               (declare (ignore count))
-              (render "list.html"
+              (render "admin.html"
                       :blobs (mapcar #'row rows)
                       :columns (sort-columns sort direction)
                       :total total
@@ -459,18 +459,18 @@ sorts, which is the whole navigation story: no search box, no filters.")
                   (hunchentoot:post-parameters*))))
 
 (easy-routes:defroute delete-blobs-route
-    ("/list/delete" :method :post :decorators (@limit-body @require-admin @same-origin)) ()
+    ("/admin/delete" :method :post :decorators (@limit-body @require-admin @same-origin)) ()
   (let ((ids (posted-ids))
         (confirmed (hunchentoot:post-parameter "confirm")))
     (cond
       ((null ids)
        (if (wants-html-p)
-           (hunchentoot:redirect "/list")
+           (hunchentoot:redirect "/admin")
            (plain 400 "No existing ids given.")))
       (confirmed
        (let ((n (alt.store:delete-blobs ids)))
          (if (wants-html-p)
-             (hunchentoot:redirect "/list")
+             (hunchentoot:redirect "/admin")
              (plain 200 (format nil "Deleted ~D." n)))))
       ((wants-html-p)
        ;; No confirmation yet: show what is about to go, and let the user post

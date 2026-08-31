@@ -57,12 +57,12 @@ Options:
       --rate-limit-window S Rate-limit window in seconds (default: 60).
       --trust-proxy         Read client IP from X-Forwarded-For. Enable ONLY
                             behind a trusted reverse proxy (e.g. Caddy/nginx).
-      --list-page-size N    Blobs shown per page on /list (default: 50).
+      --list-page-size N    Blobs shown per page on /admin (default: 50).
   -v, --version             Show version
 
 Environment (env-only):
   ADMIN_USER        Username for the admin routes (default: admin)
-  ADMIN_PASSWORD    Password for /new and /list. If unset, both stay closed
+  ADMIN_PASSWORD    Password for /new and /admin. If unset, both stay closed
                     (401), which means nothing can be uploaded at all.
                     Basic Auth is unencrypted; serve it only behind HTTPS.
   MAX_THREADS       Worker threads (default: 100).

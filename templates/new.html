@@ -4,13 +4,11 @@
 
 {% if error %}
 <p><strong>{{ error }}</strong></p>
-{% endif %}
-
-{% if created %}
+{% endif %} {% if created %}
 <p>Stored {{ created-name }} ({{ created-size }}):</p>
 <pre><code id="url">{{ created }}</code></pre>
 <p>
-  <a href="/b/{{ created-id }}">[open]</a> <a href="/list">[list]</a>
+  <a href="/b/{{ created-id }}">[open]</a> <a href="/admin">[admin]</a>
   <span id="copy-slot"></span>
 </p>
 

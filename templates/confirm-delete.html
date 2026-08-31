@@ -27,12 +27,14 @@
   </tbody>
 </table>
 
-<form action="/list/delete" method="post">
+<form action="/admin/delete" method="post">
   {% for b in blobs %}
   <input type="hidden" name="id" value="{{ b.id }}" />
   {% endfor %}
   <input type="hidden" name="confirm" value="1" />
-  <p><button type="submit">[yes, delete]</button> <a href="/list">[cancel]</a></p>
+  <p>
+    <button type="submit">[yes, delete]</button> <a href="/admin">[cancel]</a>
+  </p>
 </form>
 
 {% endblock %}

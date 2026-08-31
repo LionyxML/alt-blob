@@ -55,8 +55,8 @@ curl -u admin:PASSWORD -F f=@shot.png {{ base-url }}new</code></pre>
 
 <h3>Listing, from the shell</h3>
 
-<pre><code>curl -u admin:PASSWORD '{{ base-url }}list?raw=1'
-curl -u admin:PASSWORD -d id=aaAsJk2 -d id=bbCdEf3 -d confirm=1 {{ base-url }}list/delete</code></pre>
+<pre><code>curl -u admin:PASSWORD '{{ base-url }}admin?raw=1'
+curl -u admin:PASSWORD -d id=aaAsJk2 -d id=bbCdEf3 -d confirm=1 {{ base-url }}admin/delete</code></pre>
 
 <p>
   The listing is tab separated: id, name, type, size, creation time. Without
