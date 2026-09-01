@@ -1,9 +1,8 @@
 * AltBlob
 
 A self-hosted, anonymous paste and blob host written in Common Lisp
-(SBCL). Upload text, an image or a PDF, get back a link like
-=https://alt.example.org/b/aaAsJk2=. Fetching that link gives you the
-bytes and nothing else: no viewer, no rendering, no JavaScript.
+(SBCL). Upload text, an image, PDF or an archive, get back a link like
+=https://alt.example.org/b/aaAsJk2=.
 
 Only the administrator can upload. Anyone holding a link can read it,
 and links are not listed anywhere public.
@@ -178,13 +177,13 @@ plain-text answer.
 
 ** Routes
 
-| Route                | Auth   | What it does                                  |
-|----------------------+--------+-----------------------------------------------|
-| =GET  /=             | public | short landing page                            |
-| =GET  /about=        | public | usage, including the curl recipes             |
-| =GET  /b/:id=        | public | the stored bytes (=HEAD= works too)           |
-| =GET  /new=          | admin  | upload form: a textarea and a file input      |
-| =POST /new=          | admin  | store an upload, answer with its URL          |
+| Route              | Auth   | What it does                                |
+|--------------------+--------+---------------------------------------------|
+| =GET  /=             | public | short landing page                          |
+| =GET  /about=        | public | usage, including the curl recipes           |
+| =GET  //b//:id=        | public | the stored bytes (=HEAD= works too)           |
+| =GET  /new=          | admin  | upload form: a textarea and a file input    |
+| =POST /new=          | admin  | store an upload, answer with its URL        |
 | =GET  /admin=        | admin  | sortable listing; =?raw=1= for TSV            |
 | =POST /admin/delete= | admin  | confirmation page, or delete with =confirm=1= |
 
