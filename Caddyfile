@@ -10,6 +10,13 @@
 {$DOMAIN} {
 	encode gzip zstd
 
+	# Transport and proxy headers only; content headers come from the app.
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+		-Via
+	}
+
 	# Stop oversized uploads at the edge. Keep this above the app's MAX_BLOB
 	# (default 5M) so the app is the one that reports the limit.
 	request_body {

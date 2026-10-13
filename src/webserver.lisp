@@ -297,8 +297,7 @@ headers that keep a blob from being treated as active content."
           (if (not (probe-file path))
               (not-found)
               (progn
-                (setf (hunchentoot:header-out :x-content-type-options) "nosniff"
-                      (hunchentoot:header-out :content-security-policy)
+                (setf (hunchentoot:header-out :content-security-policy)
                       "default-src 'none'; sandbox"
                       (hunchentoot:header-out :x-robots-tag) "noindex, nofollow"
                       (hunchentoot:header-out :content-disposition)
@@ -486,6 +485,15 @@ sorts, which is the whole navigation story: no search box, no filters.")
 (defclass alt-acceptor (easy-routes:easy-routes-acceptor) ()
   (:documentation "Routing acceptor that serves our own templates for the
 status pages Hunchentoot would otherwise generate itself (404, 401, ...)."))
+
+(defmethod hunchentoot:acceptor-dispatch-request :before
+    ((acceptor alt-acceptor) request)
+  "Defaults for every response; handlers may override them (blobs set a
+stricter CSP)."
+  (declare (ignore request))
+  (setf (hunchentoot:header-out :x-content-type-options) "nosniff"
+        (hunchentoot:header-out :referrer-policy) "strict-origin-when-cross-origin"
+        (hunchentoot:header-out :content-security-policy) "frame-ancestors 'none'"))
 
 (defmethod hunchentoot:acceptor-status-message
     ((acceptor alt-acceptor) status-code &key &allow-other-keys)
