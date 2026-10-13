@@ -2,7 +2,7 @@
     :description "Anonymous, database-free paste and blob host."
     :author "Rahul Martim Juliato"
     :license "MIT"
-    :version "0.2.0"
+    :version "0.2.1"
     :depends-on (#:hunchentoot #:easy-routes #:djula #:quri)
     :entry-point "alt:main"
     :components
